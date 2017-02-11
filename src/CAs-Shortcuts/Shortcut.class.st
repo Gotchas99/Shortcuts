@@ -3,7 +3,10 @@ Class {
 	#superclass : #Object,
 	#instVars : [
 		'filename',
-		'bytes'
+		'bytes',
+		'headerSize',
+		'dataFlags',
+		'fileAttrs'
 	],
 	#category : #'CAs-Shortcuts'
 }
@@ -20,13 +23,23 @@ Shortcut >> filename: aFilename [
 
 { #category : #accessing }
 Shortcut >> read [
-	 bytes := filename asFileReference
+	filename asFileReference
 		binaryReadStreamDo: [ :bin | 
 			self readHeaderFrom: bin.
-			self readIdentifiersFrom: bin.
+			self readItemIdentifiersFrom: bin.
 			self readLocationFrom: bin.
 			self readDatafrom: bin.
 			self readExtraFrom: bin ]
+]
+
+{ #category : #accessing }
+Shortcut >> readDataStringFrom: bin [
+	| length |
+	length := (bin next: 2) unsignedShortAt: 1 bigEndian: false.
+	length := length-2.
+	bytes := ByteArray new: length .
+	bin next: length into: bytes .
+	^bytes asString.
 ]
 
 { #category : #accessing }
@@ -39,10 +52,16 @@ Shortcut >> readExtraFrom: bin [
 
 { #category : #accessing }
 Shortcut >> readHeaderFrom: bin [
+	headerSize := (bin next: 4) unsignedLongAt: 1 bigEndian: false.
+	bytes := ByteArray new: headerSize.
+	bin next: headerSize - 4 into: bytes startingAt: 4."to get offset right from doc"
+	dataFlags := DataFlags new bytes: (bytes unsignedLongAt: 20 bigEndian: false).
+	fileAttrs := FileAttributes new bytes: (bytes unsignedLongAt: 24 bigEndian: false)
 ]
 
 { #category : #accessing }
-Shortcut >> readIdentifiersFrom: bin. [
+Shortcut >> readItemIdentifiersFrom: bin [
+	(dataFlags hasItemIdentifier)ifTrue: [  ]
 ]
 
 { #category : #accessing }
