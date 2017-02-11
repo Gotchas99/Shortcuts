@@ -2,18 +2,41 @@ Class {
 	#name : #DataFlags,
 	#superclass : #Object,
 	#instVars : [
-		'bytes'
+		'flagsInt'
+	],
+	#classVars : [
+		'FlagTable'
 	],
 	#category : #'CAs-Shortcuts'
 }
 
 { #category : #initialization }
-DataFlags class >> initFlags [
+DataFlags class >> compileFlagTable [
+	| fd id tag |
+	fd := Dictionary new.
+	id := ''.
+	tag := ''.
+	self tbl lines
+		reject: [ :l | l isEmpty ]
+		thenDo: [ :l | 
+			(l beginsWith: '0x')
+				ifTrue: [ fd at: tag put: id.
+					id := l.
+					tag := '' ]
+				ifFalse: [ tag isEmpty
+						ifTrue: [ tag := l asSymbol ] ] ].
+	FlagTable := fd
+]
+
+{ #category : #initialization }
+DataFlags class >> flagTable [
+	^
+	FlagTable 
 ]
 
 { #category : #initialization }
 DataFlags class >> initialize [
-	self initFlags
+	self compileFlagTable
 ]
 
 { #category : #initialization }
@@ -182,5 +205,13 @@ Unknown'
 
 { #category : #accessing }
 DataFlags >> bytes: aLongInteger [
-bytes:= aLongInteger 
+flagsInt:= aLongInteger 
+]
+
+{ #category : #accessing }
+DataFlags >> has: aTag [
+	| mask maskHex |
+	maskHex := self class flagTable at: aTag.
+	mask := (HexString on: maskHex) number.
+	^ flagsInt allMask: mask
 ]
